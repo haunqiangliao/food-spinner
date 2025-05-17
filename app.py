@@ -1,7 +1,6 @@
 import streamlit as st
 import random
 import pandas as pd
-from PIL import Image
 
 # ----------------------
 # 1. 初始化数据
@@ -15,6 +14,42 @@ if 'foods' not in st.session_state:
         {"name": "寿司拼盘", "category": "日式", "calories": 350, "protein": 18, "image": "https://picsum.photos/seed/寿司拼盘/300/200"},
         {"name": "黑椒牛柳意面", "category": "西餐", "calories": 420, "protein": 25, "image": "https://picsum.photos/seed/黑椒牛柳意面/300/200"},
     ]
+
+# 美食图片API (使用Foodish作为默认，更专业的美食图片服务)
+def get_food_image(food_name):
+    """根据食物名称获取对应的美食图片"""
+    # 为常见食物定义固定的图片ID，确保图片相关性
+    food_image_map = {
+        "番茄炒蛋": "https://picsum.photos/seed/egg-tomato/300/200",
+        "照烧鸡腿饭": "https://picsum.photos/seed/teriyaki/300/200",
+        "蔬菜沙拉": "https://picsum.photos/seed/salad/300/200",
+        "酸菜鱼": "https://picsum.photos/seed/fish-soup/300/200",
+        "寿司拼盘": "https://picsum.photos/seed/sushi/300/200",
+        "黑椒牛柳意面": "https://picsum.photos/seed/pasta/300/200",
+        "麻婆豆腐": "https://picsum.photos/seed/mapo-tofu/300/200",
+        "宫保鸡丁": "https://picsum.photos/seed/kungpao/300/200",
+        "汉堡": "https://picsum.photos/seed/burger/300/200",
+        "披萨": "https://picsum.photos/seed/pizza/300/200",
+        "饺子": "https://picsum.photos/seed/dumplings/300/200",
+        "火锅": "https://picsum.photos/seed/hotpot/300/200",
+    }
+    
+    # 如果有预定义的图片，使用它
+    if food_name in food_image_map:
+        return food_image_map[food_name]
+    
+    # 否则使用Foodish API获取随机美食图片
+    return f"https://foodish-api.herokuapp.com/api/images/food?random={hash(food_name) % 1000}"
+
+# 检查图片是否存在
+def check_image(url):
+    """检查图片URL是否有效"""
+    try:
+        import requests
+        response = requests.head(url)
+        return response.status_code == 200
+    except:
+        return False
 
 # ----------------------
 # 2. 页面配置
@@ -44,34 +79,45 @@ with col1:
     # 随机选择按钮
     if st.button("🍽️ 随机选餐", use_container_width=True, type="primary"):
         with st.spinner("正在随机选择..."):
-            # 模拟思考时间
-            st.session_state.spin_result = random.choice(st.session_state.foods)
-            st.success("已为您随机选择了一道美食！")
+            # 确保有食物可选择
+            if not st.session_state.foods:
+                st.warning("请先添加一些食物到列表中！")
+            else:
+                st.session_state.spin_result = random.choice(st.session_state.foods)
+                st.success("已为您随机选择了一道美食！")
     
     # 结果显示区域
     if 'spin_result' in st.session_state:
         result = st.session_state.spin_result
         
-        # 显示结果卡片
-        st.markdown(f"""
-        <div class="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg">
-            <img src="{result['image']}" alt="{result['name']}" class="w-full h-48 object-cover">
-            <div class="p-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-2">{result['name']}</h2>
-                <p class="text-gray-600 mb-4">{result['category']}</p>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-gray-50 p-3 rounded-lg">
-                        <div class="text-sm text-gray-500">热量</div>
-                        <div class="text-lg font-semibold">{result['calories']} kcal</div>
-                    </div>
-                    <div class="bg-gray-50 p-3 rounded-lg">
-                        <div class="text-sm text-gray-500">蛋白质</div>
-                        <div class="text-lg font-semibold">{result['protein']} g</div>
+        # 确保结果中的食物仍在列表中
+        if result not in st.session_state.foods:
+            st.warning("您选择的菜品已被删除，请重新选择")
+            del st.session_state.spin_result
+        else:
+            # 获取优化后的图片
+            image_url = get_food_image(result['name'])
+            
+            # 显示结果卡片
+            st.markdown(f"""
+            <div class="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg">
+                <img src="{image_url}" alt="{result['name']}" class="w-full h-48 object-cover">
+                <div class="p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">{result['name']}</h2>
+                    <p class="text-gray-600 mb-4">{result['category']}</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-50 p-3 rounded-lg">
+                            <div class="text-sm text-gray-500">热量</div>
+                            <div class="text-lg font-semibold">{result['calories']} kcal</div>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg">
+                            <div class="text-sm text-gray-500">蛋白质</div>
+                            <div class="text-lg font-semibold">{result['protein']} g</div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
     else:
         st.info("点击上方按钮开始随机选餐")
 
@@ -107,33 +153,39 @@ with st.sidebar:
         category = st.selectbox("菜系", ["中餐", "西餐", "日式", "韩式", "东南亚", "其他"])
         calories = st.number_input("热量 (kcal)", min_value=0)
         protein = st.number_input("蛋白质 (g)", min_value=0.0, step=0.1)
-        image_url = st.text_input("图片URL (可选)", help="留空将使用默认图片")
         
         if st.button("➕ 添加到列表"):
             if not name:
                 st.error("请输入菜品名称")
             else:
+                # 使用优化后的图片获取函数
+                image_url = get_food_image(name)
+                
                 new_food = {
                     "name": name,
                     "category": category,
                     "calories": calories,
                     "protein": protein,
-                    "image": image_url if image_url else f"https://picsum.photos/seed/{name}/300/200"
+                    "image": image_url
                 }
                 st.session_state.foods.append(new_food)
                 st.success(f"已添加: {name}")
     
     # 显示当前食物列表
     st.markdown("### 🍱 当前食物列表")
-    for i, food in enumerate(st.session_state.foods):
-        cols = st.columns([4, 1])
-        cols[0].write(f"{i + 1}. {food['name']} ({food['category']})")
-        if cols[1].button("❌", key=f"delete_{i}"):
-            # 检查当前展示的菜品是否在被删除范围内
-            if 'spin_result' in st.session_state and st.session_state.spin_result == food:
-                del st.session_state.spin_result
-            st.session_state.foods.pop(i)
-            st.experimental_rerun()
+    if not st.session_state.foods:
+        st.info("食物列表为空，请添加一些食物")
+    else:
+        for i, food in enumerate(st.session_state.foods):
+            cols = st.columns([4, 1])
+            cols[0].write(f"{i + 1}. {food['name']} ({food['category']})")
+            if cols[1].button("❌", key=f"delete_{i}"):
+                # 检查当前展示的菜品是否在被删除范围内
+                if 'spin_result' in st.session_state and st.session_state.spin_result == food:
+                    del st.session_state.spin_result
+                st.session_state.foods.pop(i)
+                # 使用状态更新代替强制重运行
+                st.rerun()
     
     # 重置功能
     if st.button("🔄 重置为默认食物"):
@@ -145,6 +197,12 @@ with st.sidebar:
             {"name": "寿司拼盘", "category": "日式", "calories": 350, "protein": 18, "image": "https://picsum.photos/seed/寿司拼盘/300/200"},
             {"name": "黑椒牛柳意面", "category": "西餐", "calories": 420, "protein": 25, "image": "https://picsum.photos/seed/黑椒牛柳意面/300/200"},
         ]
+        # 如果当前显示的结果是默认食物中的，保留显示
+        if 'spin_result' in st.session_state and st.session_state.spin_result in st.session_state.foods:
+            pass
+        else:
+            if 'spin_result' in st.session_state:
+                del st.session_state.spin_result
         st.success("已重置为默认食物列表")
 
 # ----------------------
