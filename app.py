@@ -1,12 +1,12 @@
 import streamlit as st
 import random
+import time
 import pandas as pd
 from PIL import Image
 
 # ----------------------
 # 1. 初始化数据
 # ----------------------
-# 预设美食数据（结构化存储）
 if 'foods' not in st.session_state:
     st.session_state.foods = [
         {"name": "番茄炒蛋", "category": "中餐", "calories": 145, "protein": 6.5, "image": "https://picsum.photos/seed/番茄炒蛋/300/200"},
@@ -53,9 +53,11 @@ with col1:
     # 转盘容器
     with st.container():
         st.markdown("### 🎯 转动转盘")
-        # 转盘展示区域
+        # 创建占位符用于动态更新转盘内容
+        wheel_placeholder = st.empty()
+        
         if 'spin_result' not in st.session_state:
-            st.markdown("""
+            wheel_placeholder.markdown("""
             <div class="wheel-container" style="height: 300px; display: flex; align-items: center; justify-content: center; border: 2px dashed #eee; border-radius: 10px;">
                 <p style="color: #888;">点击下方按钮开始转动</p>
             </div>
@@ -63,7 +65,7 @@ with col1:
         else:
             # 展示转盘结果
             result = st.session_state.spin_result
-            st.markdown(f"""
+            wheel_placeholder.markdown(f"""
             <div class="result-container" style="height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; background-color: #f9f9f9; padding: 20px;">
                 <h3 style="color: #e74c3c;">🎉 推荐菜品: {result['name']}</h3>
                 <img src="{result['image']}" alt="{result['name']}" style="max-height: 180px; border-radius: 8px; margin: 10px 0;">
@@ -73,17 +75,51 @@ with col1:
         
         # 转动按钮
         if st.button("🍽️ 开始随机选餐", use_container_width=True, type="primary"):
+            # 创建动画效果，不使用 st.experimental_rerun()
             with st.spinner("转盘转动中..."):
-                # 模拟转盘动画
-                for i in range(10):
-                    temp_result = random.choice(st.session_state.foods)
-                    st.session_state.spin_result = temp_result
-                    st.experimental_rerun()
+                spin_duration = 3  # 转动3秒
+                start_time = time.time()
+                progress = 0
+                
+                while time.time() - start_time < spin_duration:
+                    # 计算动画进度（0-1）
+                    elapsed = time.time() - start_time
+                    progress = min(elapsed / spin_duration, 1)
+                    
+                    # 随着时间推移，动画速度减慢
+                    if progress < 0.3:  # 前30%时间快速转动
+                        temp_result = random.choice(st.session_state.foods)
+                    elif progress < 0.7:  # 中间40%时间中等速度
+                        if random.random() > 0.3:  # 70%概率切换
+                            temp_result = random.choice(st.session_state.foods)
+                    else:  # 最后30%时间慢速
+                        if random.random() > 0.7:  # 30%概率切换
+                            temp_result = random.choice(st.session_state.foods)
+                    
+                    # 更新转盘显示
+                    wheel_placeholder.markdown(f"""
+                    <div class="result-container" style="height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; background-color: #f9f9f9; padding: 20px;">
+                        <h3 style="color: #e74c3c;">🎡 转盘转动中: {temp_result['name']}</h3>
+                        <img src="{temp_result['image']}" alt="{temp_result['name']}" style="max-height: 180px; border-radius: 8px; margin: 10px 0;">
+                        <p style="color: #555;">{temp_result['category']} · 热量: {temp_result['calories']} kcal</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # 控制动画速度
+                    time.sleep(0.1)
                 
                 # 最终结果
                 final_result = random.choice(st.session_state.foods)
                 st.session_state.spin_result = final_result
-                st.experimental_rerun()
+                
+                # 更新为最终结果
+                wheel_placeholder.markdown(f"""
+                <div class="result-container" style="height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; background-color: #f9f9f9; padding: 20px;">
+                    <h3 style="color: #e74c3c;">🎉 推荐菜品: {final_result['name']}</h3>
+                    <img src="{final_result['image']}" alt="{final_result['name']}" style="max-height: 180px; border-radius: 8px; margin: 10px 0;">
+                    <p style="color: #555;">{final_result['category']} · 热量: {final_result['calories']} kcal</p>
+                </div>
+                """, unsafe_allow_html=True)
 
 with col2:
     # 营养信息卡片
@@ -153,7 +189,7 @@ with st.sidebar:
         cols[0].write(f"{i+1}. {food['name']} ({food['category']})")
         if cols[1].button("❌", key=f"delete_{i}"):
             st.session_state.foods.pop(i)
-            st.experimental_rerun()
+            st.experimental_rerun()  # 这里的 rerun 是安全的，因为不在循环中
     
     # 重置功能
     if st.button("🔄 重置为默认食物"):
