@@ -16,14 +16,6 @@ if 'foods' not in st.session_state:
         {"name": "黑椒牛柳意面", "category": "西餐", "calories": 420, "protein": 25, "image": "https://picsum.photos/seed/黑椒牛柳意面/300/200"},
     ]
 
-# 营养图标
-nutrition_icons = {
-    "calories": "https://img.icons8.com/fluency/48/000000/calories.png",
-    "protein": "https://img.icons8.com/fluency/48/000000/protein.png",
-    "fat": "https://img.icons8.com/fluency/48/000000/fat.png",
-    "carbs": "https://img.icons8.com/fluency/48/000000/carbs.png"
-}
-
 # ----------------------
 # 2. 页面配置
 # ----------------------
@@ -90,26 +82,13 @@ with col2:
         result = st.session_state.spin_result
         st.markdown(f"""
         <div class="bg-white rounded-xl shadow-md p-5">
-            <div class="flex items-center mb-4 pb-4 border-b border-gray-100">
-                <img src="{nutrition_icons['calories']}" alt="热量" class="w-8 h-8 mr-3">
-                <div>
-                    <div class="text-sm text-gray-500">热量</div>
-                    <div class="text-xl font-bold">{result['calories']} kcal</div>
-                </div>
+            <div class="mb-4">
+                <div class="text-sm text-gray-500">热量</div>
+                <div class="text-xl font-bold">{result['calories']} kcal</div>
             </div>
-            <div class="flex items-center mb-4 pb-4 border-b border-gray-100">
-                <img src="{nutrition_icons['protein']}" alt="蛋白质" class="w-8 h-8 mr-3">
-                <div>
-                    <div class="text-sm text-gray-500">蛋白质</div>
-                    <div class="text-xl font-bold">{result['protein']} g</div>
-                </div>
-            </div>
-            <div class="flex items-center">
-                <img src="{nutrition_icons['fat']}" alt="脂肪" class="w-8 h-8 mr-3">
-                <div>
-                    <div class="text-sm text-gray-500">脂肪</div>
-                    <div class="text-xl font-bold">{round(result['calories'] * 0.3 / 9, 1)} g</div>
-                </div>
+            <div class="mb-4">
+                <div class="text-sm text-gray-500">蛋白质</div>
+                <div class="text-xl font-bold">{result['protein']} g</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -148,8 +127,11 @@ with st.sidebar:
     st.markdown("### 🍱 当前食物列表")
     for i, food in enumerate(st.session_state.foods):
         cols = st.columns([4, 1])
-        cols[0].write(f"{i+1}. {food['name']} ({food['category']})")
+        cols[0].write(f"{i + 1}. {food['name']} ({food['category']})")
         if cols[1].button("❌", key=f"delete_{i}"):
+            # 检查当前展示的菜品是否在被删除范围内
+            if 'spin_result' in st.session_state and st.session_state.spin_result == food:
+                del st.session_state.spin_result
             st.session_state.foods.pop(i)
             st.experimental_rerun()
     
