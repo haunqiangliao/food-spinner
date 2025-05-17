@@ -1,6 +1,5 @@
 import streamlit as st
 import random
-import pandas as pd
 
 # ----------------------
 # 1. 初始化数据
@@ -14,29 +13,6 @@ if 'foods' not in st.session_state:
         {"name": "寿司拼盘", "category": "日式", "calories": 350, "protein": 18, "image": "https://picsum.photos/seed/寿司拼盘/300/200"},
         {"name": "黑椒牛柳意面", "category": "西餐", "calories": 420, "protein": 25, "image": "https://picsum.photos/seed/黑椒牛柳意面/300/200"},
     ]
-
-# 美食图片API
-def get_food_image(food_name):
-    """根据食物名称获取对应的美食图片"""
-    food_image_map = {
-        "番茄炒蛋": "https://picsum.photos/seed/egg-tomato/300/200",
-        "照烧鸡腿饭": "https://picsum.photos/seed/teriyaki/300/200",
-        "蔬菜沙拉": "https://picsum.photos/seed/salad/300/200",
-        "酸菜鱼": "https://picsum.photos/seed/fish-soup/300/200",
-        "寿司拼盘": "https://picsum.photos/seed/sushi/300/200",
-        "黑椒牛柳意面": "https://picsum.photos/seed/pasta/300/200",
-        "麻婆豆腐": "https://picsum.photos/seed/mapo-tofu/300/200",
-        "宫保鸡丁": "https://picsum.photos/seed/kungpao/300/200",
-        "汉堡": "https://picsum.photos/seed/burger/300/200",
-        "披萨": "https://picsum.photos/seed/pizza/300/200",
-        "饺子": "https://picsum.photos/seed/dumplings/300/200",
-        "火锅": "https://picsum.photos/seed/hotpot/300/200",
-    }
-    
-    if food_name in food_image_map:
-        return food_image_map[food_name]
-    
-    return f"https://foodish-api.herokuapp.com/api/images/food?random={hash(food_name) % 1000}"
 
 # ----------------------
 # 2. 页面配置
@@ -80,11 +56,9 @@ with col1:
             st.warning("您选择的菜品已被删除，请重新选择")
             del st.session_state.spin_result
         else:
-            image_url = get_food_image(result['name'])
-            
             st.markdown(f"""
             <div class="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg">
-                <img src="{image_url}" alt="{result['name']}" class="w-full h-48 object-cover">
+                <img src="{result['image']}" alt="{result['name']}" class="w-full h-48 object-cover">
                 <div class="p-6">
                     <h2 class="text-2xl font-bold text-gray-800 mb-2">{result['name']}</h2>
                     <p class="text-gray-600 mb-4">{result['category']}</p>
@@ -105,7 +79,7 @@ with col1:
         st.info("点击上方按钮开始随机选餐")
 
 with col2:
-    # 营养信息卡片
+    # 营养信息卡片（纯文本，无图标）
     st.markdown("### 🍳 营养信息")
     if 'spin_result' in st.session_state:
         result = st.session_state.spin_result
@@ -136,13 +110,15 @@ with st.sidebar:
         category = st.selectbox("菜系", ["中餐", "西餐", "日式", "韩式", "东南亚", "其他"])
         calories = st.number_input("热量 (kcal)", min_value=0)
         protein = st.number_input("蛋白质 (g)", min_value=0.0, step=0.1)
+        image_url = st.text_input("图片URL (可选)", help="留空将使用默认图片")
         
         if st.button("➕ 添加到列表"):
             if not name:
                 st.error("请输入菜品名称")
             else:
-                image_url = get_food_image(name)
-                
+                if not image_url:
+                    image_url = f"https://picsum.photos/seed/{name}/300/200"
+                    
                 new_food = {
                     "name": name,
                     "category": category,
