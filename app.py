@@ -53,59 +53,70 @@ with col1:
     with st.container():
         st.markdown("### 🎯 转动转盘")
         
-        # 添加CSS动画样式
+        # 添加CSS动画样式（使用Tailwind风格的类名）
         st.markdown("""
-        <style>
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(3600deg); } /* 转10圈 */
+        <style type="text/tailwindcss">
+            @layer utilities {
+                .content-auto {
+                    content-visibility: auto;
+                }
+                .wheel-spin {
+                    animation: spin 5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+                }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(3600deg); }
+                }
+                .wheel-section {
+                    position: absolute;
+                    width: 50%;
+                    height: 50%;
+                    transform-origin: bottom right;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 24px;
+                    clip-path: polygon(0 0, 100% 0, 100% 100%);
+                }
+                .wheel-pointer {
+                    position: absolute;
+                    top: -10px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 0;
+                    height: 0;
+                    border-left: 10px solid transparent;
+                    border-right: 10px solid transparent;
+                    border-bottom: 20px solid #e74c3c;
+                    z-index: 10;
+                }
             }
-            
-            .spinning {
-                animation: spin 5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-            }
-            
-            .wheel-section {
-                position: absolute;
-                width: 50%;
-                height: 50%;
-                transform-origin: bottom right;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 24px;
-                clip-path: polygon(0 0, 100% 0, 100% 100%);
-            }
-            
-            /* 为不同扇区设置不同颜色 */
-            .wheel-section:nth-child(1) { background-color: rgba(231, 76, 60, 0.8); transform: rotate(0deg); }
-            .wheel-section:nth-child(2) { background-color: rgba(46, 204, 113, 0.8); transform: rotate(60deg); }
-            .wheel-section:nth-child(3) { background-color: rgba(52, 152, 219, 0.8); transform: rotate(120deg); }
-            .wheel-section:nth-child(4) { background-color: rgba(155, 89, 182, 0.8); transform: rotate(180deg); }
-            .wheel-section:nth-child(5) { background-color: rgba(241, 196, 15, 0.8); transform: rotate(240deg); }
-            .wheel-section:nth-child(6) { background-color: rgba(230, 126, 34, 0.8); transform: rotate(300deg); }
         </style>
         """, unsafe_allow_html=True)
         
-        # 创建转盘动画（HTML+CSS版本）
+        # 创建转盘动画（改进的HTML结构）
         st.markdown("""
-        <div class="wheel-container" style="width: 300px; height: 300px; margin: 20px auto; position: relative;">
-            <div id="wheel" style="width: 100%; height: 100%; border-radius: 50%; border: 5px solid #f0f0f0; position: relative; overflow: hidden;">
-                <!-- 6个扇区 -->
-                <div class="wheel-section">🍜</div>
-                <div class="wheel-section">🍔</div>
-                <div class="wheel-section">🍣</div>
-                <div class="wheel-section">🌯</div>
-                <div class="wheel-section">🍕</div>
-                <div class="wheel-section">🥗</div>
-                
-                <!-- 中心图标 -->
-                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; background-color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(0,0,0,0.2);">
-                    <div style="font-size: 24px;">🍴</div>
+        <div class="flex justify-center my-6">
+            <div class="relative w-[300px] h-[300px]">
+                <!-- 转盘 -->
+                <div id="food-wheel" class="absolute w-full h-full rounded-full border-4 border-gray-200 overflow-hidden">
+                    <!-- 6个扇区 -->
+                    <div class="wheel-section bg-red-400/80" style="transform: rotate(0deg);">🍜</div>
+                    <div class="wheel-section bg-green-400/80" style="transform: rotate(60deg);">🍔</div>
+                    <div class="wheel-section bg-blue-400/80" style="transform: rotate(120deg);">🍣</div>
+                    <div class="wheel-section bg-purple-400/80" style="transform: rotate(180deg);">🌯</div>
+                    <div class="wheel-section bg-yellow-400/80" style="transform: rotate(240deg);">🍕</div>
+                    <div class="wheel-section bg-orange-400/80" style="transform: rotate(300deg);">🥗</div>
+                    
+                    <!-- 中心图标 -->
+                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
+                        <div class="text-2xl">🍴</div>
+                    </div>
                 </div>
+                
+                <!-- 指针 -->
+                <div class="wheel-pointer"></div>
             </div>
-            <!-- 指针 -->
-            <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 20px solid #e74c3c; z-index: 10;"></div>
         </div>
         """, unsafe_allow_html=True)
         
@@ -115,12 +126,16 @@ with col1:
             st.markdown("""
             <script>
                 // 获取转盘元素
-                const wheel = document.getElementById('wheel');
+                const wheel = document.getElementById('food-wheel');
+                
+                // 重置转盘状态
+                wheel.classList.remove('wheel-spin');
+                void wheel.offsetWidth; // 触发重绘
                 
                 // 添加旋转动画类
-                wheel.classList.add('spinning');
+                wheel.classList.add('wheel-spin');
                 
-                // 选择随机结果（这里只是模拟，实际应根据角度计算）
+                // 选择随机结果
                 const foods = [
                     {name: "番茄炒蛋", category: "中餐", calories: 145, protein: 6.5, image: "https://picsum.photos/seed/番茄炒蛋/300/200"},
                     {name: "照烧鸡腿饭", category: "日式", calories: 480, protein: 22, image: "https://picsum.photos/seed/照烧鸡腿饭/300/200"},
@@ -135,14 +150,25 @@ with col1:
                 // 动画结束后显示结果
                 setTimeout(() => {
                     // 移除动画类
-                    wheel.classList.remove('spinning');
+                    wheel.classList.remove('wheel-spin');
                     
-                    // 使用Streamlit的JS API更新结果
+                    // 更新Streamlit状态
                     parent.postMessage({
                         type: 'streamlit:setComponentValue',
                         value: randomFood
                     }, '*');
-                }, 5000); // 动画持续时间5秒
+                    
+                    // 显示结果通知
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
+                    notification.textContent = `🎉 恭喜！您抽到了 ${randomFood.name}！`;
+                    document.body.appendChild(notification);
+                    
+                    // 3秒后移除通知
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 3000);
+                }, 5000);
             </script>
             """, unsafe_allow_html=True)
     
@@ -151,12 +177,20 @@ with col1:
         result = st.session_state.spin_result
         st.markdown(f"""
         ### 🎉 推荐菜品: {result['name']}
-        <div style="display: flex; align-items: center; margin-top: 10px;">
-            <img src="{result['image']}" alt="{result['name']}" style="max-height: 200px; border-radius: 8px; margin-right: 20px;">
-            <div>
-                <p style="font-size: 18px; color: #555;">{result['category']}</p>
-                <p style="font-size: 16px;">热量: {result['calories']} kcal</p>
-                <p style="font-size: 16px;">蛋白质: {result['protein']} g</p>
+        <div class="flex items-center mt-4 gap-4">
+            <img src="{result['image']}" alt="{result['name']}" class="w-1/3 h-auto rounded-lg shadow-md">
+            <div class="flex-1">
+                <div class="text-gray-600 text-lg">{result['category']}</div>
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                    <div class="bg-gray-100 p-2 rounded">
+                        <div class="text-xs text-gray-500">热量</div>
+                        <div class="text-lg font-semibold">{result['calories']} kcal</div>
+                    </div>
+                    <div class="bg-gray-100 p-2 rounded">
+                        <div class="text-xs text-gray-500">蛋白质</div>
+                        <div class="text-lg font-semibold">{result['protein']} g</div>
+                    </div>
+                </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -167,26 +201,26 @@ with col2:
     if 'spin_result' in st.session_state:
         result = st.session_state.spin_result
         st.markdown(f"""
-        <div class="nutrition-card" style="background-color: #fff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 20px;">
-            <div class="nutrition-item" style="display: flex; align-items: center; margin-bottom: 15px;">
-                <img src="{nutrition_icons['calories']}" alt="热量" style="width: 32px; margin-right: 10px;">
+        <div class="bg-white rounded-xl shadow-md p-4">
+            <div class="flex items-center mb-4">
+                <img src="{nutrition_icons['calories']}" alt="热量" class="w-8 h-8 mr-3">
                 <div>
-                    <div style="font-size: 14px; color: #666;">热量</div>
-                    <div style="font-size: 20px; font-weight: bold;">{result['calories']} kcal</div>
+                    <div class="text-sm text-gray-500">热量</div>
+                    <div class="text-xl font-bold">{result['calories']} kcal</div>
                 </div>
             </div>
-            <div class="nutrition-item" style="display: flex; align-items: center; margin-bottom: 15px;">
-                <img src="{nutrition_icons['protein']}" alt="蛋白质" style="width: 32px; margin-right: 10px;">
+            <div class="flex items-center mb-4">
+                <img src="{nutrition_icons['protein']}" alt="蛋白质" class="w-8 h-8 mr-3">
                 <div>
-                    <div style="font-size: 14px; color: #666;">蛋白质</div>
-                    <div style="font-size: 20px; font-weight: bold;">{result['protein']} g</div>
+                    <div class="text-sm text-gray-500">蛋白质</div>
+                    <div class="text-xl font-bold">{result['protein']} g</div>
                 </div>
             </div>
-            <div class="nutrition-item" style="display: flex; align-items: center;">
-                <img src="{nutrition_icons['fat']}" alt="脂肪" style="width: 32px; margin-right: 10px;">
+            <div class="flex items-center">
+                <img src="{nutrition_icons['fat']}" alt="脂肪" class="w-8 h-8 mr-3">
                 <div>
-                    <div style="font-size: 14px; color: #666;">脂肪</div>
-                    <div style="font-size: 20px; font-weight: bold;">{round(result['calories'] * 0.3 / 9, 1)} g</div>
+                    <div class="text-sm text-gray-500">脂肪</div>
+                    <div class="text-xl font-bold">{round(result['calories'] * 0.3 / 9, 1)} g</div>
                 </div>
             </div>
         </div>
@@ -252,11 +286,3 @@ st.markdown("""
 💡 提示：可在侧边栏自定义添加或删除食物  
 📊 营养数据仅供参考，实际数值可能有差异
 """)
-
-# 监听JavaScript传来的结果
-if 'js_result' not in st.session_state:
-    st.session_state.js_result = None
-
-# 这里需要使用Streamlit的组件通信API来接收JavaScript传来的结果
-# 目前Streamlit原生支持有限，需要使用第三方组件或其他方式实现
-# 此处简化处理，使用按钮点击后随机选择结果
